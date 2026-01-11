@@ -1,7 +1,8 @@
-import os
 import deepchem as dc
 import numpy as np
-from sklearn.metrics import roc_auc_score
+import torch
+from load_data import load_tox21
+from tqdm import tqdm
 
 print("Loading and featurizing data")
 #define the featurizer. We chose ConvMolFeaturizer as it is suitable for graph convolutional networks
@@ -9,8 +10,7 @@ print("Loading and featurizing data")
 featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True, use_partial_charge=True, use_chirality=True) #use_edges=True to include bond information, additionaly chirality and partial charge attributes could be used
 
 #load the tox21 dataset with the deepchem
-tasks, datasets, transformers = dc.molnet.load_tox21(featurizer=featurizer) #SMILES strings into graph representations (objects that deepchem can work with)
-train_dataset, valid_dataset, test_dataset = datasets #"Scaffold Split" to split the data into training, validation, and test sets based on molecular scaffolds
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21(featurizer = featurizer)
 #tasks: ['NR-AhR', 'NR-AR', 'NR-AR-LBD', 'NR-Aromatase', ...] -> list of toxicity assays that we try to predict. Hence, we need 12 output neurons in the final layer of our model
 #datasets: This is a tuple (train, valid, test) containing 3 DiskDataset objects, designed to handle large datasets that may not fit entirely into memory
 #Transformers: preprocessing steps applied to the data, such as normalization or standardization of features
@@ -41,14 +41,22 @@ model = dc.models.AttentiveFPModel(
     number_atom_features=n_features_detected,
     mode='classification',
     dropout=0.2,
-    batch_size=32,
+    batch_size=128,
     learning_rate=0.001,
-    device='cpu'
+    device='cuda' if torch.cuda.is_available() else 'cpu'
 )
 
+print(f"Model will be trained on: {model.device}")
 print("Training AttentiveFP model")
 #Train the model
-model.fit(train_dataset, nb_epoch=)
+print("Training GAT model")
+#Train the model
+num_epochs = 20
+for epoch in tqdm(range(num_epochs), desc="Training Progress"):
+    # Train for 1 epoch at a time
+    loss = model.fit(train_dataset, nb_epoch=1)
+
+    tqdm.write(f"Epoch {epoch+1}, Loss: {loss}")
 print("Evaluating model performance")
 metric_per_task = dc.metrics.Metric(
     dc.metrics.roc_auc_score,

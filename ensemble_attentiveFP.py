@@ -1,7 +1,7 @@
-import os
 import deepchem as dc
 import numpy as np
 import torch
+from load_data import load_tox21
 
 print("Loading and featurizing data...")
 featurizer = dc.feat.MolGraphConvFeaturizer(
@@ -9,10 +9,7 @@ featurizer = dc.feat.MolGraphConvFeaturizer(
     use_partial_charge=True, 
     use_chirality=True
 )
-
-tasks, datasets, transformers = dc.molnet.load_tox21(featurizer=featurizer)
-train_dataset, valid_dataset, test_dataset = datasets
-
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21(featurizer = featurizer)
 print(f"Number of tasks: {len(tasks)}")
 print(f"Number of training samples: {len(train_dataset)}")
 
@@ -40,9 +37,9 @@ for i in range(N_ENSEMBLE):
         number_atom_features=n_features_detected,
         mode='classification',
         dropout=0.2,
-        batch_size=32,
+        batch_size=128,
         learning_rate=0.001,
-        device='cpu' # Warning: CPU training is slow for ensembles
+        device='cuda' if torch.cuda.is_available() else 'cpu'
     )
     
     # Fit the individual model
