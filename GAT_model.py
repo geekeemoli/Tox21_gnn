@@ -1,7 +1,8 @@
-import os
 import deepchem as dc
 import numpy as np
-from sklearn.metrics import roc_auc_score
+import torch
+from tqdm import tqdm
+from load_data import load_tox21
 
 print("Loading and featurizing data")
 #define the featurizer. We chose ConvMolFeaturizer as it is suitable for graph convolutional networks
@@ -34,14 +35,21 @@ model = dc.models.GATModel(
     n_tasks=12,
     mode='classification',
     dropout=0.2,
-    batch_size=32,
+    batch_size=128,
     learning_rate=0.001,
-    device='cpu'
+    device='cuda' if torch.cuda.is_available() else 'cpu'
 )
+print(f"Model will be trained on: {model.device}")
 
 print("Training GAT model")
 #Train the model
-model.fit(train_dataset, nb_epoch=500)
+num_epochs = 5
+for epoch in tqdm(range(num_epochs), desc="Training Progress"):
+    # Train for 1 epoch at a time
+    loss = model.fit(train_dataset, nb_epoch=1)
+    
+    # Optional: Update the progress bar with the latest loss
+    # tqdm.write(f"Epoch {epoch+1}, Loss: {loss}")
 print("Evaluating model performance")
 metric_per_task = dc.metrics.Metric(
     dc.metrics.roc_auc_score,

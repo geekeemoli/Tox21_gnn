@@ -11,8 +11,8 @@ Assuming `uv` is installed, to install the necessary dependencies, run this comm
 uv sync
 ```
 
-To run a script using the configured environment:
+To run a script using the configured environment (ensuring GPU libraries are loaded):
 ```bash
-uv run python <script_name>.py
+uv run --env-file .env python <script_name>.py
 ```
 
