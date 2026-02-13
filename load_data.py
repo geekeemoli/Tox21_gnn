@@ -42,19 +42,18 @@ def load_tox21_org(featurizer = dc.feat.MolGraphConvFeaturizer(use_edges = True)
             y.append(row_y)
             w.append(row_w)
 
-        return(dc.data.NumpyDataset(X = features, y = np.array(y), w = np.array(w), ids = smiles[idx]))
+        return(dc.data.NumpyDataset(X = np.stack(features), y = np.array(y), w = np.array(w), ids = smiles[idx]))
 
 
 
     train_dataset = make_dc_data(ds["train"])
     valid_dataset = make_dc_data(ds["validation"])
-    test_dataset = valid_dataset
 
     balancer = dc.trans.BalancingTransformer(dataset=train_dataset)
 
     train_dataset = balancer.transform(train_dataset)
     valid_dataset = balancer.transform(valid_dataset)
-    test_dataset = balancer.transform(test_dataset)
+    test_dataset = valid_dataset
    
     # Add it to the list of transformers to be returned
     transformers = [balancer]

@@ -32,9 +32,6 @@ for i, task_name in enumerate(tasks):
     X_task_train = X_train[valid_rows_train]
     y_task_train = y_train[valid_rows_train, i]
 
-    print(X_task_train.shape)
-    print(y_task_train.shape)
-
     # Train Random Forest
     rf = RandomForestClassifier(n_estimators=n_estimators, class_weight='balanced', n_jobs=3)
     rf.fit(X_task_train, y_task_train)
