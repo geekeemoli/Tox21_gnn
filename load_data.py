@@ -42,7 +42,7 @@ def load_tox21_org(featurizer = dc.feat.MolGraphConvFeaturizer(use_edges = True)
             y.append(row_y)
             w.append(row_w)
 
-        return(dc.data.NumpyDataset(X = np.stack(features), y = np.array(y), w = np.array(w), ids = smiles[idx]))
+        return(dc.data.NumpyDataset(X = np.stack(features), y = np.array(y), w = np.array(w), ids = [smiles[i] for i in idx]))
 
 
 

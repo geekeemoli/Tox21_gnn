@@ -5,7 +5,7 @@ import numpy as np
 import deepchem as dc
 
 # Optimized settings
-n_estimators = 100
+n_estimators = 1000
 radius = 2
 size = 4096
 chiral = True

@@ -1,17 +1,14 @@
-import os
-os.environ["DEEPCHEM_BACKEND"] = "tensorflow"
+from load_data import load_tox21_org
 import deepchem as dc
 import numpy as np
-from sklearn.metrics import roc_auc_score
 
 print("Loading and featurizing data")
 #define the featurizer. We chose ConvMolFeaturizer as it is suitable for graph convolutional networks
 #it represents molecules as graphs. Atoms = nodes, bonds = edges
-featurizer = dc.feat.ConvMolFeaturizer() #use_edges=True to include bond information, additionaly chirality and partial charge attributes could be used
+featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True, use_partial_charge = True,use_chirality = True)
 
 #load the tox21 dataset with the deepchem
-tasks, datasets, transformers = dc.molnet.load_tox21(featurizer=featurizer) #SMILES strings into graph representations (objects that deepchem can work with)
-train_dataset, valid_dataset, test_dataset = datasets #"Scaffold Split" to split the data into training, validation, and test sets based on molecular scaffolds
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21_org(featurizer = featurizer)
 #tasks: ['NR-AhR', 'NR-AR', 'NR-AR-LBD', 'NR-Aromatase', ...] -> list of toxicity assays that we try to predict. Hence, we need 12 output neurons in the final layer of our model
 #datasets: This is a tuple (train, valid, test) containing 3 DiskDataset objects, designed to handle large datasets that may not fit entirely into memory
 #Transformers: preprocessing steps applied to the data, such as normalization or standardization of features
@@ -21,23 +18,19 @@ for i, task in enumerate(tasks):
     print(f"Task {i+1}: {task}")
 print("Number of training samples: ", len(train_dataset))
 
+#Detect the number of atom features from the first training sample
+number_atom_features = train_dataset.X[0].node_features.shape[1]
+print(f"Number of atom features: {number_atom_features}")
+
 #Define the model
-model = dc.models.GraphConvModel(
-    n_tasks=12, 
-    mode='classification', 
-    dropout=0.2,
-    batch_size=32,
-    learning_rate=0.001
-)
-"""
-model = dc.models.GATModel(
+model = dc.models.GCNModel(
     n_tasks=12,
     mode='classification',
+    number_atom_features=number_atom_features,
     dropout=0.2,
     batch_size=32,
     learning_rate=0.001
 )
-"""
 print("Training GCN model")
 #Train the model
 model.fit(train_dataset, nb_epoch=10)

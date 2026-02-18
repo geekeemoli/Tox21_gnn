@@ -1,8 +1,9 @@
 import deepchem as dc
 import numpy as np
 import torch
-from load_data import load_tox21
+from load_data import load_tox21_org
 from tqdm import tqdm
+from plot_auc import plot_auc
 
 print("Loading and featurizing data")
 #define the featurizer. We chose ConvMolFeaturizer as it is suitable for graph convolutional networks
@@ -10,7 +11,7 @@ print("Loading and featurizing data")
 featurizer = dc.feat.MolGraphConvFeaturizer(use_edges=True, use_partial_charge=True, use_chirality=True) #use_edges=True to include bond information, additionaly chirality and partial charge attributes could be used
 
 #load the tox21 dataset with the deepchem
-tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21(featurizer = featurizer)
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21_org(featurizer = featurizer)
 #tasks: ['NR-AhR', 'NR-AR', 'NR-AR-LBD', 'NR-Aromatase', ...] -> list of toxicity assays that we try to predict. Hence, we need 12 output neurons in the final layer of our model
 #datasets: This is a tuple (train, valid, test) containing 3 DiskDataset objects, designed to handle large datasets that may not fit entirely into memory
 #Transformers: preprocessing steps applied to the data, such as normalization or standardization of features
@@ -51,7 +52,7 @@ print("Training AttentiveFP model")
 #Train the model
 print("Training GAT model")
 #Train the model
-num_epochs = 20
+num_epochs = 10
 for epoch in tqdm(range(num_epochs), desc="Training Progress"):
     # Train for 1 epoch at a time
     loss = model.fit(train_dataset, nb_epoch=1)
@@ -73,3 +74,5 @@ for task_name, score in zip(tasks, auc_list):
 
 # Calculate mean AUC across all tasks
 print(f"Average AUC    : {np.mean(auc_list):.4f}")
+
+plot_auc(model, test_dataset, tasks)

@@ -1,7 +1,9 @@
 import deepchem as dc
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from load_data import load_tox21
+from load_data import load_tox21_org
 
 print("Loading and featurizing data...")
 featurizer = dc.feat.MolGraphConvFeaturizer(
@@ -9,7 +11,7 @@ featurizer = dc.feat.MolGraphConvFeaturizer(
     use_partial_charge=True, 
     use_chirality=True
 )
-tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21(featurizer = featurizer)
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21_org(featurizer = featurizer)
 print(f"Number of tasks: {len(tasks)}")
 print(f"Number of training samples: {len(train_dataset)}")
 
@@ -44,7 +46,7 @@ for i in range(N_ENSEMBLE):
     
     # Fit the individual model
     # Note: We use restore=False to ensure we start from scratch every time
-    model.fit(train_dataset, nb_epoch=20, restore=False)
+    model.fit(train_dataset, nb_epoch=10, restore=False)
     
     ensemble_models.append(model)
 
@@ -98,3 +100,35 @@ for task_name, score in zip(tasks, per_task_auc):
     print(f"{task_name:15s}: {score:.4f}")
 
 print(f"\nEnsemble Average AUC : {avg_auc:.4f}")
+
+
+y_true = test_dataset.y
+w = test_dataset.w
+predictions = ensemble_probs
+
+# Plot ROC curves
+print("\nGenerating ROC curves...")
+
+# Plot ROC curve for each task
+fig, axes = plt.subplots(3, 4, figsize=(16, 12))
+axes = axes.flatten()
+
+for task_idx, task_name in enumerate(tasks):
+    mask = w[:, task_idx] > 0
+    fpr, tpr, _ = roc_curve(y_true[mask, task_idx], predictions[mask, task_idx, 1])
+    roc_auc = auc(fpr, tpr)
+    
+    axes[task_idx].plot(fpr, tpr, color='darkorange', lw=2, 
+                        label=f'ROC curve (AUC = {roc_auc:.3f})')
+    axes[task_idx].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', label='Random')
+    axes[task_idx].set_xlim([0.0, 1.0])
+    axes[task_idx].set_ylim([0.0, 1.05])
+    axes[task_idx].set_xlabel('False Positive Rate')
+    axes[task_idx].set_ylabel('True Positive Rate')
+    axes[task_idx].set_title(f'{task_name}')
+    axes[task_idx].legend(loc="lower right")
+    axes[task_idx].grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('roc_curves.png', dpi=150)
+print("ROC curves saved as 'roc_curves.png'")

@@ -1,9 +1,13 @@
 import deepchem as dc
 import numpy as np
-from load_data import load_tox21
+from load_data import load_tox21_org
 
-featurizer = dc.feat.MolGraphConvFeaturizer(use_partial_charge=True, use_edges=True) #use_edges=True to include bond information, additionaly chirality and partial charge attributes could be used
-tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21(featurizer = featurizer) #"Scaffold Split" to split the data into training, validation, and test sets based on molecular scaffolds
+partial_charge = True
+edges = True
+chirality = True
+
+featurizer = dc.feat.MolGraphConvFeaturizer(use_partial_charge=partial_charge, use_edges=edges, use_chirality = chirality) #use_edges=True to include bond information, additionaly chirality and partial charge attributes could be used
+tasks, transformers, train_dataset, valid_dataset, test_dataset = load_tox21_org(featurizer = featurizer) #"Scaffold Split" to split the data into training, validation, and test sets based on molecular scaffolds
 #tasks: ['NR-AhR', 'NR-AR', 'NR-AR-LBD', 'NR-Aromatase', ...] -> list of toxicity assays that we try to predict. Hence, we need 12 output neurons in the final layer of our model
 #datasets: This is a tuple (train, valid, test) containing 3 DiskDataset objects, designed to handle large datasets that may not fit entirely into memory
 #Transformers: preprocessing steps applied to the data, such as normalization or standardization of features
@@ -42,6 +46,7 @@ model = dc.models.GATModel(
 print("Training GAT model")
 #Train the model
 model.fit(train_dataset, nb_epoch=10)
+print(f"Features: Partial Charge: {partial_charge}, Edges: {edges}, Chirality: {chirality}")
 print("Evaluating model performance")
 metric_per_task = dc.metrics.Metric(
     dc.metrics.roc_auc_score,
